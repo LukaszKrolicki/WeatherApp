@@ -25,4 +25,7 @@ object Const{
             return networkInfo!= null && networkInfo.isConnectedOrConnecting
         }
     }
+
+    const val PREFERENCES_NAME = "WeatherAppPreferences"
+    const val WEATHER_RESPONSE_DATA = "weather_response_data"
 }
