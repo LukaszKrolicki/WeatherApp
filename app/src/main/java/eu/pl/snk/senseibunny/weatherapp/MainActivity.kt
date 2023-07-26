@@ -19,6 +19,11 @@ import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import eu.pl.snk.senseibunny.weatherapp.databinding.ActivityMainBinding
+import eu.pl.snk.senseibunny.weatherapp.models.WeatherResponse
+import eu.pl.snk.senseibunny.weatherapp.network.WeatherService
+import retrofit2.*
+import retrofit2.converter.gson.GsonConverterFactory
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -68,6 +73,40 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun getLocationWeatherDetails(){
+        if(Const.isNetworkAvailable(this)){
+            val retrofit: Retrofit = Retrofit.Builder().baseUrl(getString(R.string.BASE_URL)) //pass the base url
+                .addConverterFactory(GsonConverterFactory.create()).build()
+
+            val service: WeatherService = retrofit.create(WeatherService::class.java) //We make URL complete
+
+            val listCall: Call<WeatherResponse> = service.getWeather(mLatitude, mLongitude,getString(R.string.API_KEY), getString(R.string.METRIC_UNIT)) //We make call to the server
+
+            listCall.enqueue(object : Callback<WeatherResponse> {
+                override fun onResponse(call: Call<WeatherResponse>, response: Response<WeatherResponse>) { //We get response from the server
+                    if(response.isSuccessful){
+                        val weatherList: WeatherResponse = response.body()!!
+                        Log.d("TAG", "onResponse: ${weatherList.toString()}")
+                    }
+                    else{
+                        val rc= response.code()
+                        when(rc){
+                            400 -> Log.e("TAG", "onResponse 400: ${response.errorBody()}")
+                            404-> Log.e("TAG", "onResponse 400: ${response.errorBody()}")
+                            else -> Log.e("TAG", "error")
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<WeatherResponse>, t: Throwable) { //We get error from the server
+                    Toast.makeText(this@MainActivity, t.message, Toast.LENGTH_LONG).show()
+                }
+            })
+        }
+        else{
+            Toast.makeText(this,"Network is not available", Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun isLocationEnabled(): Boolean { //asking if location is enabled
         val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager // getting location manager
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
@@ -108,6 +147,8 @@ class MainActivity : AppCompatActivity() {
             mLatitude=mLastLocation!!.latitude
             mLongitude=mLastLocation!!.longitude
             Log.d("LOG", "Latitude: " + mLatitude + "Longitude: " + mLongitude)
+
+            getLocationWeatherDetails()
 
         }
     }
